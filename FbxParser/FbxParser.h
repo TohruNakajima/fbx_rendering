@@ -54,7 +54,7 @@ public:
 	FbxTime GetFrameTime() { return frameTime; }
 	FbxTime GetStartTime() { return startTime; }
 	FbxTime GetStopTime() { return stopTime; }
-	FbxTime GetCurrentTime() { return currentTime; }
+	FbxTime GetFBXCurrentTime() { return currentTime; }
 	FbxAnimLayer* GetAnimLayer() { return currAnimLayer; }
 	FbxArray<FbxString*> GetAnimStackArray(){ return animStackNameArray; }
 	Skeleton GetSkeleton() { return skeleton; }

@@ -4,6 +4,7 @@
 #include "VBOMesh.h"
 #include <vector>
 #include <cstdio>
+
 using std::vector;
 
 extern FbxParser *parser;
@@ -137,12 +138,12 @@ void Display()
 	Status animStatus = parser->GetStatus();
 	if (animStatus != UNLOADED && animStatus != MUST_BE_LOADED)
 	{
-		cameraManager->SetCamera(parser->GetFbxScene(), parser->GetCurrentTime(), parser->GetAnimLayer(), parser->GetCameraArray(), windowWidth, windowHeight);
+		cameraManager->SetCamera(parser->GetFbxScene(), parser->GetFBXCurrentTime(), parser->GetAnimLayer(), parser->GetCameraArray(), windowWidth, windowHeight);
 		//DrawModel();
 		//glDisable(GL_TEXTURE_2D);
 
 		FbxAMatrix lDummyGlobalPosition;
-		FbxTime currentTime = parser->GetCurrentTime();
+		FbxTime currentTime = parser->GetFBXCurrentTime();
 		FbxAnimLayer *currAnimLayer = parser->GetAnimLayer();
 		//DrawSkeleton(parser->GetFbxScene()->GetRootNode(), currentTime, currAnimLayer, lDummyGlobalPosition);
 		

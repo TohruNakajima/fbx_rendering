@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <math.h>
 #include "VBOMesh.h"
-#include "FreeImage.h"
+#include <FreeImage.h>
 
 FbxParser::FbxParser(FbxString fbxFile) :
 pManager(nullptr), pScene(nullptr), pMesh(nullptr), fbxFile(fbxFile), 
@@ -211,12 +211,12 @@ void FbxParser::LoadCacheRecursive(FbxScene * pScene, FbxAnimLayer * pAnimLayer,
 	const int lTextureCount = pScene->GetTextureCount();
 	for (int lTextureIndex = 0; lTextureIndex < lTextureCount; ++lTextureIndex)
 	{
-		FbxTexture * lTexture = pScene->GetTexture(lTextureIndex);	//获取贴图对象
+		FbxTexture * lTexture = pScene->GetTexture(lTextureIndex);	//获取贴图对蟻E
 		FbxFileTexture * lFileTexture = FbxCast<FbxFileTexture>(lTexture);
 		if (lFileTexture && !lFileTexture->GetUserDataPtr())
 		{
 			// Try to load the texture from absolute path
-			const FbxString lFileName = lFileTexture->GetFileName();	//获取贴图文件名
+			const FbxString lFileName = lFileTexture->GetFileName();	//获取贴图文件脕E
 
 			GLuint lTextureObject = 0;
 			bool lStatus = LoadTextureFromFile(lFileName, lTextureObject);
@@ -1002,25 +1002,28 @@ void FbxParser::ProcessJointsAndAnimations(FbxNode *node)
 			//Get Animation information
 			//Now only support one take
 			FbxAnimStack *currAnimStack = pScene->GetSrcObject<FbxAnimStack>(0);
-			FbxString animStackName = currAnimStack->GetName();
-			animationName = animStackName;
-			FbxTakeInfo *takeInfo = pScene->GetTakeInfo(animStackName);
-			FbxTime start = currAnimStack->GetLocalTimeSpan().GetStart();
-			FbxTime end = currAnimStack->GetLocalTimeSpan().GetStop();
+			if (currAnimStack) {
+				FbxString animStackName = currAnimStack->GetName();
+				animationName = animStackName;
+				FbxTakeInfo* takeInfo = pScene->GetTakeInfo(animStackName);
+				FbxTime start = currAnimStack->GetLocalTimeSpan().GetStart();
+				FbxTime end = currAnimStack->GetLocalTimeSpan().GetStop();
 
-			animationLength = end.GetFrameCount(FbxTime::eFrames24) - start.GetFrameCount(FbxTime::eFrames24) + 1;
-			KeyFrame **currAnim = &skeleton.joints[currJointIndex].animation;
+				animationLength = end.GetFrameCount(FbxTime::eFrames24) - start.GetFrameCount(FbxTime::eFrames24) + 1;
+				KeyFrame** currAnim = &skeleton.joints[currJointIndex].animation;
 
-			for (FbxLongLong i = start.GetFrameCount(FbxTime::eFrames24); i != end.GetFrameCount(FbxTime::eFrames24); ++i) {
-				FbxTime currTime;
-				currTime.SetFrame(i, FbxTime::eFrames24);
-				*currAnim = new KeyFrame();	
-				(*currAnim)->frameNum = i;
-				FbxAMatrix currTransformOffset = node->EvaluateGlobalTransform(currTime) * geometryTransform;
-				(*currAnim)->globalTransform = currTransformOffset.Inverse() * currCluster->GetLink()->EvaluateGlobalTransform(currTime);
-				currAnim = &((*currAnim)->next);
-				
+				for (FbxLongLong i = start.GetFrameCount(FbxTime::eFrames24); i != end.GetFrameCount(FbxTime::eFrames24); ++i) {
+					FbxTime currTime;
+					currTime.SetFrame(i, FbxTime::eFrames24);
+					*currAnim = new KeyFrame();
+					(*currAnim)->frameNum = i;
+					FbxAMatrix currTransformOffset = node->EvaluateGlobalTransform(currTime) * geometryTransform;
+					(*currAnim)->globalTransform = currTransformOffset.Inverse() * currCluster->GetLink()->EvaluateGlobalTransform(currTime);
+					currAnim = &((*currAnim)->next);
+
+				}
 			}
+			
 			
 		}
 	}
