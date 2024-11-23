@@ -5,6 +5,7 @@
 #include <FreeImage.h>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 FbxParser::FbxParser(FbxString fbxFile) :
 pManager(nullptr), pScene(nullptr), pMesh(nullptr), fbxFile(fbxFile), 
@@ -570,33 +571,58 @@ std::unordered_map<std::string, std::vector<fbxsdk::FbxAMatrix>> FbxParser::get_
 }
 void FbxParser::parse_animation_files(std::string filepath, FbxScene* pScene) {
 	std::ifstream ifs(filepath);
-	FBXSDK_printf("\n\n---------------------------Pose-------------------------------\n\n");
-	int      i, j, k, lPoseCount;
-	FbxString  lName;
+	int count_of_poses;
+	ifs >> count_of_poses;
+	ifs.ignore(std::numeric_limits<std::streamsize>::max(), '\r');
 
-	lPoseCount = pScene->GetPoseCount();
-	int line_element_count = lPoseCount * 16;
-	for (i = 0; i < lPoseCount; i++)
-	{
-		FbxPose* lPose = pScene->GetPose(i);
-		lName = lPose->GetName();
-		this->animation_list[std::string(lName)] = std::vector<fbxsdk::FbxAMatrix>();
+	for (int i = 0; i < count_of_poses; ++i) {
+		std::string name;
+		ifs >> name;  // Read the name
+		std::replace(name.begin(), name.end(), '$', ' ');
+		this->animation_list[name] = std::vector<fbxsdk::FbxAMatrix>();
 	}
-	
-	for (i = 0; i < lPoseCount; i++)
+
+	FbxString  lName;
+	int lPoseCount = pScene->GetPoseCount();
+
+	for (int i = 0; i < lPoseCount; i++)
 	{
 		FbxPose* lPose = pScene->GetPose(i);
-		FbxString lName = lPose->GetName(); 
-		fbxsdk::FbxAMatrix pose_matrix;
-		for (j = 0; j < 4; j++) {
-			for (k = 0; k < 4; k++) {
-				double val = 0;
-				ifs >> val;
-				pose_matrix[j][k] = val;
+
+		const char* lName = lPose->GetName();
+		
+		
+		
+		for (int j = 0; j < lPose->GetCount(); j++)
+		{
+			fbxsdk::FbxAMatrix pose_matrix;
+			lName = lPose->GetNodeName(j).GetCurrentName();
+			
+			if (!lPose->IsBindPose())
+			{
+				// Rest pose can have local matrix
+				DisplayBool("    Is local space matrix: ", lPose->IsLocalMatrix(j));
 			}
+
+			for (int mj = 0; mj < 4; mj++) {
+				for (int mk = 0; mk < 4; mk++) {
+					double val = 0;
+					ifs >> val;
+					pose_matrix[mj][mk] = val;
+				}
+			}
+			this->animation_list[std::string(lName)].push_back(pose_matrix);
+
+
+			
 		}
-		this->animation_list[std::string(lName)].push_back(pose_matrix);
 	}
+
+
+
+
+
+
 	ifs.close();
 	
 }

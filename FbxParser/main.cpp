@@ -17,6 +17,8 @@ int main(int argc, char **argv)
 		parser->DisplayHierarchy(parser->GetFbxScene());		// Display hierarchy of model
 		parser->DisplayContent(parser->GetFbxScene());	// Display content
 		parser->DisplayPose(parser->GetFbxScene());
+		parser->parse_animation_files("animation.anim", parser->GetFbxScene());
+		std::cout << parser->get_animation_list().size() << std::endl;
 	}
 	else 
 	{
