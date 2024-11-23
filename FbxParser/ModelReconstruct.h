@@ -29,12 +29,12 @@ void ComputeLinearDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxTime
 void ComputeDualQuaternionDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxTime &currTime, FbxVector4 *vertexArray, FbxPose *pose);
 void ComputeClusterDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxCluster *cluster, 
 														FbxAMatrix &vertexTransformMatrix, FbxTime &currTime, FbxPose *pose);
-//glut functions
+// glut functions
 void MouseFunc(int button, int state, int x, int y);
 void MotionFunc(int x, int y);
 void ReshapeFunc(int w, int h);
 void TimerFunc(int);
-//create menus
+// create menus
 void CreateMenus();
 
 #endif

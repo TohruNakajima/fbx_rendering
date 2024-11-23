@@ -7,13 +7,15 @@ bool gSupportVBO;
 
 int main(int argc, char **argv)
 {
-	parser = new FbxParser(FbxString("soldier"));
+	const char* model_rin = "models/rin/rin-opt";
+	const char* model_soldier = "soldier";
+	parser = new FbxParser(FbxString(model_rin));
 	bool loadResult = parser->LoadScene();		//load scene
 	if (loadResult) 
 	{
 		parser->DisplayGlobalLightSettings(&parser->GetFbxScene()->GetGlobalSettings());		//Display global light settings
-		parser->DisplayHierarchy(parser->GetFbxScene());		//Display hierarchy of model
-		parser->DisplayContent(parser->GetFbxScene());	//Display content
+		parser->DisplayHierarchy(parser->GetFbxScene());		// Display hierarchy of model
+		parser->DisplayContent(parser->GetFbxScene());	// Display content
 		parser->DisplayPose(parser->GetFbxScene());
 	}
 	else 
@@ -22,8 +24,7 @@ int main(int argc, char **argv)
 		system("pause");
 		exit(1);
 	}
-
-
+	// parser->SetAnimStatus(DYNAMICAL);
 	if (parser) 
 	{
 		gSupportVBO = InitOpenGL(argc, argv);	//Initialize the environment of OpenGL

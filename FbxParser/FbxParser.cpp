@@ -3,6 +3,8 @@
 #include <math.h>
 #include "VBOMesh.h"
 #include <FreeImage.h>
+#include <iostream>
+#include <fstream>
 
 FbxParser::FbxParser(FbxString fbxFile) :
 pManager(nullptr), pScene(nullptr), pMesh(nullptr), fbxFile(fbxFile), 
@@ -207,22 +209,22 @@ void FbxParser::OnTimerClick()
 
 void FbxParser::LoadCacheRecursive(FbxScene * pScene, FbxAnimLayer * pAnimLayer, const char * pFbxFileName, bool pSupportVBO)
 {
-	//ªÒ»°Ã˘Õº∏ˆ ˝
+	//ÔøΩÔøΩ»°ÔøΩÔøΩÕºÔøΩÔøΩÔøΩÔøΩ
 	const int lTextureCount = pScene->GetTextureCount();
 	for (int lTextureIndex = 0; lTextureIndex < lTextureCount; ++lTextureIndex)
 	{
-		FbxTexture * lTexture = pScene->GetTexture(lTextureIndex);	//ªÒ»°Ã˘Õº∂‘œÅE
+		FbxTexture * lTexture = pScene->GetTexture(lTextureIndex);	//ÔøΩÔøΩ»°ÔøΩÔøΩÕºÔøΩÔøΩœÅE
 		FbxFileTexture * lFileTexture = FbxCast<FbxFileTexture>(lTexture);
 		if (lFileTexture && !lFileTexture->GetUserDataPtr())
 		{
 			// Try to load the texture from absolute path
-			const FbxString lFileName = lFileTexture->GetFileName();	//ªÒ»°Ã˘ÕºŒƒº˛√ÅE
+			const FbxString lFileName = lFileTexture->GetFileName();	//ÔøΩÔøΩ»°ÔøΩÔøΩÕºÔøΩƒºÔøΩ√ÅE
 
 			GLuint lTextureObject = 0;
 			bool lStatus = LoadTextureFromFile(lFileName, lTextureObject);
 
 			const FbxString lAbsFbxFileName = FbxPathUtils::Resolve(pFbxFileName);
-			const FbxString lAbsFolderName = FbxPathUtils::GetFolderName(lAbsFbxFileName);	//ªÒ»°æ¯∂‘¬∑æ∂
+			const FbxString lAbsFolderName = FbxPathUtils::GetFolderName(lAbsFbxFileName);	//ÔøΩÔøΩ»°ÔøΩÔøΩÔøΩÔøΩ¬∑ÔøΩÔøΩ
 			if (!lStatus)
 			{
 				// Load texture from relative file name (relative to FBX file)
@@ -360,11 +362,11 @@ void FbxParser::SetCurrAnimStack(int animIndex)
 		return;
 	}
 
-	//we assume that the first animation layer connected to the animation stack is the base layer
+	// we assume that the first animation layer connected to the animation stack is the base layer
 	currAnimLayer = currAnimStack->GetMember<FbxAnimLayer>();
 	pScene->SetCurrentAnimationStack(currAnimStack);
 
-	//get current animation infos
+	// get current animation infos
 	FbxTakeInfo *currTakeInfo = pScene->GetTakeInfo((*animStackNameArray[animIndex]));
 	if (currTakeInfo) {
 		startTime = currTakeInfo->mLocalTimeSpan.GetStart();		//start time
@@ -377,9 +379,7 @@ void FbxParser::SetCurrAnimStack(int animIndex)
 		stopTime = timeLineSpan.GetStop();
 	}
 	currentTime = startTime;		
-	
 	animStatus = MUST_BE_REFRESHED;
-
 }
 
 void FbxParser::DisplayMetaData(FbxScene *pScene)
@@ -537,7 +537,25 @@ void FbxParser::DisplayContent(FbxNode *node)
 
 FbxAMatrix FbxParser::GetGlobalPosition(FbxNode *node, FbxTime currTime, FbxAMatrix *parentGlobalMatrix)
 {
+	// important
+	// FbxAMatrix& EvaluateGlobalTransform(FbxTime pTime=FBXSDK_TIME_INFINITE, FbxNode::EPivotSet pPivotSet=FbxNode::eSourcePivot, bool pApplyTarget=false, bool pForceEval=false);
+	
 	return node->EvaluateGlobalTransform(currTime);
+}
+
+FbxAMatrix FbxParser::GetGlobalPositionFromPredefinedAnimationData(FbxNode* node, FbxTime currTime, std::unordered_map<std::string, std::vector<fbxsdk::FbxAMatrix>> pose_transformation_map)
+{
+	// important
+	// Convert node name to string
+	std::string nodeName = std::string(node->GetName());
+	if (pose_transformation_map.find(nodeName) != pose_transformation_map.end()) {
+		std::vector<fbxsdk::FbxAMatrix> animation_data = pose_transformation_map[nodeName];
+		return animation_data[currTime.GetSecondCount() % animation_data.size()];
+	}
+	else {
+		// Handle the case where the node is not found in the map (optional)
+		return FbxAMatrix();  // Return a default transformation (identity matrix)
+	}
 }
 
 FbxAMatrix FbxParser::GetGeometry(FbxNode *node)
@@ -547,7 +565,41 @@ FbxAMatrix FbxParser::GetGeometry(FbxNode *node)
 	const FbxVector4 IS = node->GetGeometricScaling(FbxNode::eSourcePivot);
 	return FbxAMatrix(IT, IR, IS);
 }
+std::vector<std::string, fbxsdk::FbxAMatrix> FbxParser::get_animation_list() {
+	return this->animation_list;
+}
+void FbxParser::parse_animation_files(std::string filepath, FbxScene* pScene) {
+	std::ifstream ifs(filepath);
+	FBXSDK_printf("\n\n---------------------------Pose-------------------------------\n\n");
+	int      i, j, k, lPoseCount;
+	FbxString  lName;
 
+	lPoseCount = pScene->GetPoseCount();
+	line_element_count = lPoseCount * 16;
+	for (i = 0; i < lPoseCount; i++)
+	{
+		FbxPose* lPose = pScene->GetPose(i);
+		lName = lPose->GetName();
+		this->animation_list[std::string(lName)] = std::vector<fbxsdk::FbxAMatrix>();
+	}
+	
+	for (i = 0; i < lPoseCount; i++)
+	{
+		FbxPose* lPose = pScene->GetPose(i);
+		FbxString lName = lPose->GetName(); 
+		fbxsdk::FbxAMatrix pose_matrix;
+		for (j = 0; j < 4; j++) {
+			for (k = 0; k < 4; k++) {
+				double val = 0;
+				ifs >> val;
+				pose_matrix[j][k] = val;
+			}
+		}
+		this->animation_list[std::string(lName)].push_back(pose_matrix);
+	}
+	ifs.close();
+	
+}
 void FbxParser::DisplayTexture(FbxNode *node)
 {
 	FbxMesh *nodeMesh = node->GetMesh();
@@ -987,7 +1039,7 @@ void FbxParser::ProcessJointsAndAnimations(FbxNode *node)
 
 			FbxAMatrix localMatrix = currCluster->GetLink()->EvaluateLocalTransform();
 
-			skeleton.joints[currJointIndex].node = currCluster->GetLink();	//ªÒ»°µ±«∞µƒπÿΩ⁄
+			skeleton.joints[currJointIndex].node = currCluster->GetLink();	//ÔøΩÔøΩ»°ÔøΩÔøΩ«∞ÔøΩƒπÿΩÔøΩ
 			skeleton.joints[currJointIndex].localMatrix = localMatrix;			
 			
 			unsigned int numOfIndices = currCluster->GetControlPointIndicesCount();
@@ -1020,7 +1072,6 @@ void FbxParser::ProcessJointsAndAnimations(FbxNode *node)
 					FbxAMatrix currTransformOffset = node->EvaluateGlobalTransform(currTime) * geometryTransform;
 					(*currAnim)->globalTransform = currTransformOffset.Inverse() * currCluster->GetLink()->EvaluateGlobalTransform(currTime);
 					currAnim = &((*currAnim)->next);
-
 				}
 			}
 			

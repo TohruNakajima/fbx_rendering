@@ -4,6 +4,7 @@
 #include "VBOMesh.h"
 #include <vector>
 #include <cstdio>
+#include <iostream>
 
 using std::vector;
 
@@ -136,7 +137,9 @@ void Display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	Status animStatus = parser->GetStatus();
-	if (animStatus != UNLOADED && animStatus != MUST_BE_LOADED)
+	// parser->currAnimLayer = NULL;
+	// parser->animStackNameArray.Clear();
+	if (animStatus != UNLOADED && animStatus != MUST_BE_LOADED && animStatus != DYNAMICAL)
 	{
 		cameraManager->SetCamera(parser->GetFbxScene(), parser->GetFBXCurrentTime(), parser->GetAnimLayer(), parser->GetCameraArray(), windowWidth, windowHeight);
 		//DrawModel();
@@ -156,6 +159,7 @@ void Display()
 
 		glFlush();
 	}
+	
 	glutSwapBuffers();
 	if (parser->GetStatus() == MUST_BE_LOADED)
 	{
@@ -435,6 +439,7 @@ void DrawMesh(FbxNode *node, FbxTime currTime, FbxAnimLayer *animLayer, FbxAMatr
 				if (lClusterCount)
 				{
 					FbxPose *pose = NULL;
+					// important!
 					ComputeSkinDeformation(lMesh, globalPosition, currTime, lVertexArray, pose);
 				}
 			}
@@ -725,9 +730,10 @@ void ComputeSkinDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxTime &
 {
 	FbxSkin * lSkinDeformer = (FbxSkin *)mesh->GetDeformer(0, FbxDeformer::eSkin);
 	FbxSkin::EType lSkinningType = lSkinDeformer->GetSkinningType();
-
+	FbxTime zeroTime(0);
 	if (lSkinningType == FbxSkin::eLinear || lSkinningType == FbxSkin::eRigid)
 	{
+		// !important
 		ComputeLinearDeformation(mesh, globalPosition, currTime, vertexArray, pose);
 	}
 	else if (lSkinningType == FbxSkin::eDualQuaternion)
@@ -743,9 +749,8 @@ void ComputeSkinDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxTime &
 
 		FbxVector4* lVertexArrayDQ = new FbxVector4[lVertexCount];
 		memcpy(lVertexArrayDQ, mesh->GetControlPoints(), lVertexCount * sizeof(FbxVector4));
-
 		ComputeLinearDeformation(mesh, globalPosition, currTime, lVertexArrayLinear, pose);
-		ComputeDualQuaternionDeformation(mesh, globalPosition, currTime, lVertexArrayDQ, pose);
+		ComputeDualQuaternionDeformation(mesh, globalPosition, zeroTime, lVertexArrayDQ, pose);
 
 		// To blend the skinning according to the blend weights
 		// Final vertex = DQSVertex * blend weight + LinearVertex * (1- blend weight)
@@ -795,6 +800,8 @@ void ComputeLinearDeformation(FbxMesh *pMesh, FbxAMatrix &pGlobalPosition, FbxTi
 				continue;
 
 			FbxAMatrix lVertexTransformMatrix;
+
+			//! important
 			ComputeClusterDeformation(pMesh, pGlobalPosition, lCluster, lVertexTransformMatrix, currTime, pPose);
 
 			int lVertexIndexCount = lCluster->GetControlPointIndicesCount();
@@ -981,7 +988,17 @@ void ComputeDualQuaternionDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition,
 	delete[] clusterWeight;
 }
 
-void ComputeClusterDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxCluster *cluster, FbxAMatrix &vertexTransformMatrix, FbxTime &currTime, FbxPose *pose)
+void _print_fbx_matrix(fbxsdk::FbxAMatrix matrix) {
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			std::cout << matrix.Get(i, j) << "\t\t";
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+}
+
+void ComputeClusterDeformation(FbxMesh* mesh, FbxAMatrix& globalPosition, FbxCluster* cluster, FbxAMatrix& vertexTransformMatrix, FbxTime& currTime, FbxPose* pose)
 {
 	FbxCluster::ELinkMode clusterMode = cluster->GetLinkMode();
 	FbxAMatrix lReferenceGlobalInitPosition;
@@ -999,6 +1016,8 @@ void ComputeClusterDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxClu
 	FbxAMatrix lClusterRelativeCurrentPositionInverse;
 	FbxAMatrix lParentGlobalMatrix;
 	lParentGlobalMatrix.SetIdentity();
+
+	FbxTime zeroTime(0);
 
 	if (clusterMode == FbxCluster::eAdditive && cluster->GetAssociateModel())
 	{
@@ -1020,7 +1039,7 @@ void ComputeClusterDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxClu
 		lClusterGeometry = parser->GetGeometry(cluster->GetLink());
 		lClusterGlobalInitPosition *= lClusterGeometry;
 		lClusterGlobalCurrentPosition = parser->GetGlobalPosition(cluster->GetLink(), currTime, &lParentGlobalMatrix);
-
+		
 		// Compute the shift of the link relative to the reference.
 		//ModelM-1 * AssoM * AssoGX-1 * LinkGX * LinkM-1*ModelM
 		vertexTransformMatrix = lReferenceGlobalInitPosition.Inverse() * lAssociateGlobalInitPosition * lAssociateGlobalCurrentPosition.Inverse() *
@@ -1036,8 +1055,29 @@ void ComputeClusterDeformation(FbxMesh *mesh, FbxAMatrix &globalPosition, FbxClu
 
 		// Get the link initial global position and the link current global position.
 		cluster->GetTransformLinkMatrix(lClusterGlobalInitPosition);
-		lClusterGlobalCurrentPosition = parser->GetGlobalPosition(cluster->GetLink(), currTime, &lParentGlobalMatrix);
+		fbxsdk::FbxAMatrix extra_transform(fbxsdk::FbxVector4(0, 0, 0, 1), fbxsdk::FbxVector4(0, 0, 0, 1), fbxsdk::FbxVector4(1, 1, 1, 1));
+		std::cout << cluster->GetLink()->GetName() << std::endl;
+		if (strcmp(cluster->GetLink()->GetName(), "Eye_R") == 0 || strcmp(cluster->GetLink()->GetName(), "Eye_L") == 0) {
+			std::cout << "!!!" << std::endl;
+			double randomX = (std::rand() % 20) - 10;  // Random number between -50 and 50
+			double randomY = (std::rand() % 20) - 10;  // Random number between -50 and 50
+			double randomZ = (std::rand() % 20) - 10;  // Random number between -50 and 50
+			double randomRotationX = (std::rand() % 40);
+			double randomRotationY = (std::rand() % 40);
+			double randomRotationZ = (std::rand() % 40);
+			extra_transform.SetR(fbxsdk::FbxVector4(randomRotationX, 0, 0, 1.0));
+		}
+		// important
+		if(parser.use_predefied_animation_list && parser.get_animation_list() != nullptr){
+			lClusterGlobalCurrentPosition = extra_transform * 
+				parser->GetGlobalPositionFromPredefinedAnimationData(cluster->GetLink(), currentTime, parser->get_animation_list());
+		}else{
+			lClusterGlobalCurrentPosition = extra_transform * parser->GetGlobalPosition(cluster->GetLink(), currTime, &lParentGlobalMatrix);
+		}
 
+		
+		
+		_print_fbx_matrix(lClusterGlobalCurrentPosition);
 		// Compute the initial position of the link relative to the reference.
 		lClusterRelativeInitPosition = lClusterGlobalInitPosition.Inverse() * lReferenceGlobalInitPosition;
 

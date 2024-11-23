@@ -16,7 +16,8 @@ enum Status {
 	UNLOADED,			//unload file or load file failed
 	MUST_BE_LOADED,		//ready for loading file
 	MUST_BE_REFRESHED,	//something changed and redraw needed
-	REFRESHED			//no redraw needed
+	REFRESHED,			//no redraw needed
+	DYNAMICAL
 };
 
 class FbxParser
@@ -34,6 +35,8 @@ public:
 	void DisplayHierarchy(FbxScene *pScene);		//Display hierarchy of the fbx model
 	void DisplayContent(FbxScene *pScene);		//Display info of all the nodes, such as mesh, skeleton, marker, etc
 	void DisplayPose(FbxScene *pScene);		//Display pose of the input model
+	FbxAMatrix FbxParser::GetGlobalPositionFromPredefinedAnimationData(FbxNode* node, FbxTime currTime,
+		std::unordered_map<std::string, std::vector<fbxsdk::FbxAMatrix>> pose_transformation_map);
 
 	void CovertFormat();	//convert format
 
@@ -78,6 +81,11 @@ public:
 	FbxAMatrix GetGeometry(FbxNode *node);
 	Status GetStatus() const { return animStatus; }
 	ShadingMode GetShadingMode() const { return shadingMode; }
+	FbxAnimLayer* currAnimLayer;
+	FbxArray<FbxString*> animStackNameArray;
+	bool use_predefied_animation_list = false;
+	std::vector<std::string, fbxsdk::FbxAMatrix> animation_list;
+
 private:
 	FbxManager *pManager;
 	FbxScene *pScene;
@@ -90,9 +98,7 @@ private:
 	vector<FbxVector4> polygonPoints;
 	int polygonCount;
 
-	FbxArray<FbxString*> animStackNameArray;
 	FbxArray<FbxNode*> cameraArray;
-	FbxAnimLayer *currAnimLayer;
 	FbxTime startTime;
 	FbxTime stopTime;
 	FbxTime frameTime;
@@ -128,7 +134,7 @@ private:
 	void DebugSumOfWeights();
 	void LoadCacheRecursive(FbxNode * pNode, FbxAnimLayer * pAnimLayer, bool pSupportVBO);
 	bool LoadTextureFromFile(const FbxString & pFilePath, unsigned int & pTextureObject);
-
-};
+	std::vector<std::string, fbxsdk::FbxAMatrix> get_animation_list();
+	void FbxParser::parse_animation_files(std::string filepath, FbxScene* pScene);
  
 #endif 
