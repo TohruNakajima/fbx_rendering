@@ -565,7 +565,7 @@ FbxAMatrix FbxParser::GetGeometry(FbxNode *node)
 	const FbxVector4 IS = node->GetGeometricScaling(FbxNode::eSourcePivot);
 	return FbxAMatrix(IT, IR, IS);
 }
-std::vector<std::string, fbxsdk::FbxAMatrix> FbxParser::get_animation_list() {
+std::unordered_map<std::string, std::vector<fbxsdk::FbxAMatrix>> FbxParser::get_animation_list() {
 	return this->animation_list;
 }
 void FbxParser::parse_animation_files(std::string filepath, FbxScene* pScene) {
@@ -575,7 +575,7 @@ void FbxParser::parse_animation_files(std::string filepath, FbxScene* pScene) {
 	FbxString  lName;
 
 	lPoseCount = pScene->GetPoseCount();
-	line_element_count = lPoseCount * 16;
+	int line_element_count = lPoseCount * 16;
 	for (i = 0; i < lPoseCount; i++)
 	{
 		FbxPose* lPose = pScene->GetPose(i);

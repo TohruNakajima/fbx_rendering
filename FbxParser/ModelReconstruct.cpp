@@ -1068,9 +1068,9 @@ void ComputeClusterDeformation(FbxMesh* mesh, FbxAMatrix& globalPosition, FbxClu
 			extra_transform.SetR(fbxsdk::FbxVector4(randomRotationX, 0, 0, 1.0));
 		}
 		// important
-		if(parser.use_predefied_animation_list && parser.get_animation_list() != nullptr){
+		if(parser->use_predefied_animation_list){
 			lClusterGlobalCurrentPosition = extra_transform * 
-				parser->GetGlobalPositionFromPredefinedAnimationData(cluster->GetLink(), currentTime, parser->get_animation_list());
+				parser->GetGlobalPositionFromPredefinedAnimationData(cluster->GetLink(), currTime, parser->get_animation_list());
 		}else{
 			lClusterGlobalCurrentPosition = extra_transform * parser->GetGlobalPosition(cluster->GetLink(), currTime, &lParentGlobalMatrix);
 		}

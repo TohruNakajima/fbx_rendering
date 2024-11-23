@@ -30,66 +30,67 @@ public:
 	FbxParser& operator=(const FbxParser&) = delete;
 
 	bool LoadScene();		//load scene,return false if failed
-	void DisplayMetaData(FbxScene *pScene);		//Display meta data
-	void DisplayGlobalLightSettings(FbxGlobalSettings *pGlobalSettings);		//Display global light settings
-	void DisplayHierarchy(FbxScene *pScene);		//Display hierarchy of the fbx model
-	void DisplayContent(FbxScene *pScene);		//Display info of all the nodes, such as mesh, skeleton, marker, etc
-	void DisplayPose(FbxScene *pScene);		//Display pose of the input model
+	void DisplayMetaData(FbxScene* pScene);		//Display meta data
+	void DisplayGlobalLightSettings(FbxGlobalSettings* pGlobalSettings);		//Display global light settings
+	void DisplayHierarchy(FbxScene* pScene);		//Display hierarchy of the fbx model
+	void DisplayContent(FbxScene* pScene);		//Display info of all the nodes, such as mesh, skeleton, marker, etc
+	void DisplayPose(FbxScene* pScene);		//Display pose of the input model
 	FbxAMatrix FbxParser::GetGlobalPositionFromPredefinedAnimationData(FbxNode* node, FbxTime currTime,
 		std::unordered_map<std::string, std::vector<fbxsdk::FbxAMatrix>> pose_transformation_map);
 
 	void CovertFormat();	//convert format
 
 	FbxManager* GetFbxManager() { return pManager; }	//get FbxManager
-	FbxScene* GetFbxScene(){ return pScene; }	//get FbxScene
+	FbxScene* GetFbxScene() { return pScene; }	//get FbxScene
 	FbxString GetFbxFileName() { return fbxFile; }		//get file name
-	
+
 	int GetPolygonCount() { return polygonCount; }		//get polygon count
 	vector<FbxVector4> GetPolygonPoints() { return polygonPoints; }		//get polygon points
 	vector<FbxVector4> GetNormals() { return normals; }		//get normals
 	vector<FbxVector2> GetTextureUVs() { return uvs; }		//get texture uvs
-	FbxMesh* GetFbxMesh(){ return pMesh; }		//get FbxMesh
-	void SetFbxMesh(FbxMesh *mesh){ this->pMesh = pMesh; }	//set FbxMesh, it's useless actually
+	FbxMesh* GetFbxMesh() { return pMesh; }		//get FbxMesh
+	void SetFbxMesh(FbxMesh* mesh) { this->pMesh = pMesh; }	//set FbxMesh, it's useless actually
 
-	void SetTextureFileName(FbxString texFile){ textureFile = texFile; }
+	void SetTextureFileName(FbxString texFile) { textureFile = texFile; }
 	FbxString GetTextureFileName() { return textureFile; }
-	
+
 	FbxTime GetFrameTime() { return frameTime; }
 	FbxTime GetStartTime() { return startTime; }
 	FbxTime GetStopTime() { return stopTime; }
 	FbxTime GetFBXCurrentTime() { return currentTime; }
 	FbxAnimLayer* GetAnimLayer() { return currAnimLayer; }
-	FbxArray<FbxString*> GetAnimStackArray(){ return animStackNameArray; }
+	FbxArray<FbxString*> GetAnimStackArray() { return animStackNameArray; }
 	Skeleton GetSkeleton() { return skeleton; }
-	const FbxArray<FbxNode*> &GetCameraArray()const { return cameraArray; }
+	const FbxArray<FbxNode*>& GetCameraArray()const { return cameraArray; }
 	void SetFrameTime(FbxTime frameTime) { this->frameTime = frameTime; }
 	void SetCurrentTime(FbxTime currentTime) { this->currentTime = currentTime; }
 	void SetStartTime(FbxTime startTime) { this->startTime = startTime; }
 	void SetStopTime(FbxTime stopTime) { this->stopTime = stopTime; }
 	void SetAnimStatus(Status animStatus) { this->animStatus = animStatus; }
 	void SetShadingMode(ShadingMode shadingMode)
-	{ 
-		this->shadingMode = shadingMode; 
+	{
+		this->shadingMode = shadingMode;
 		animStatus = MUST_BE_REFRESHED;
 	}
 
 	void SetCurrAnimStack(int animIndex);
 	void OnTimerClick();
-	void LoadCacheRecursive(FbxScene * pScene, FbxAnimLayer * pAnimLayer, const char * pFbxFileName, bool pSupportVBO);
+	void LoadCacheRecursive(FbxScene* pScene, FbxAnimLayer* pAnimLayer, const char* pFbxFileName, bool pSupportVBO);
 
-	FbxAMatrix GetGlobalPosition(FbxNode *node, FbxTime currTime, FbxAMatrix *parentGlobalMatrix= NULL);
-	FbxAMatrix GetGeometry(FbxNode *node);
+	FbxAMatrix GetGlobalPosition(FbxNode* node, FbxTime currTime, FbxAMatrix* parentGlobalMatrix = NULL);
+	FbxAMatrix GetGeometry(FbxNode* node);
 	Status GetStatus() const { return animStatus; }
 	ShadingMode GetShadingMode() const { return shadingMode; }
 	FbxAnimLayer* currAnimLayer;
 	FbxArray<FbxString*> animStackNameArray;
 	bool use_predefied_animation_list = false;
-	std::vector<std::string, fbxsdk::FbxAMatrix> animation_list;
-
+	std::unordered_map<std::string, std::vector<fbxsdk::FbxAMatrix>> animation_list;
+	std::unordered_map<std::string, std::vector<fbxsdk::FbxAMatrix>> get_animation_list();
+	void FbxParser::parse_animation_files(std::string filepath, FbxScene* pScene);
 private:
-	FbxManager *pManager;
-	FbxScene *pScene;
-	FbxMesh *pMesh;
+	FbxManager* pManager;
+	FbxScene* pScene;
+	FbxMesh* pMesh;
 	FbxString fbxFile;
 	FbxString textureFile;
 	FbxString animationName;
@@ -111,30 +112,29 @@ private:
 
 	Skeleton skeleton;
 
-	void GetNormal(FbxMesh *mesh, int vertexIndex, int vertexCounter, vector<FbxVector4> &normals);
-	void GetTextureUV(FbxMesh *mesh, vector<FbxVector2> &uvs);
+	void GetNormal(FbxMesh* mesh, int vertexIndex, int vertexCounter, vector<FbxVector4>& normals);
+	void GetTextureUV(FbxMesh* mesh, vector<FbxVector2>& uvs);
 
 	void InitFbxObjects();	//initialize FbxManage, FbxScene,etc
 
-	void DisplayHierarchy(FbxNode *node, int depth, int currIndex, int parentIndex);	//used for DisplayHierarchy(FbxScene*)
+	void DisplayHierarchy(FbxNode* node, int depth, int currIndex, int parentIndex);	//used for DisplayHierarchy(FbxScene*)
 
-	void DisplayContent(FbxNode *node);			//used for DisplayContent(FbxScene*)
+	void DisplayContent(FbxNode* node);			//used for DisplayContent(FbxScene*)
 	//functions below are called inside of DisplayContent
-	void DisplayMarker(FbxNode *node);				
-	void DisplaySkeleton(FbxNode *node);
-	void DisplayMesh(FbxNode *node);
-	void DisplayTexture(FbxNode *node);
-	void DisplayTexture(FbxScene *pScene);
+	void DisplayMarker(FbxNode* node);
+	void DisplaySkeleton(FbxNode* node);
+	void DisplayMesh(FbxNode* node);
+	void DisplayTexture(FbxNode* node);
+	void DisplayTexture(FbxScene* pScene);
 
-	void FillCameraArray(FbxNode *pNode, FbxArray<FbxNode*> &pCameraArray);
-	void ProcessJointsAndAnimations(FbxNode *node);
-	FbxAMatrix GetGeometryTransformation(FbxNode *node);
+	void FillCameraArray(FbxNode* pNode, FbxArray<FbxNode*>& pCameraArray);
+	void ProcessJointsAndAnimations(FbxNode* node);
+	FbxAMatrix GetGeometryTransformation(FbxNode* node);
 	int FindJointIndexByName(const FbxString& jointName);
 	FbxMatrix CalcGlobalMatrix(int i);
 	void DebugSumOfWeights();
-	void LoadCacheRecursive(FbxNode * pNode, FbxAnimLayer * pAnimLayer, bool pSupportVBO);
-	bool LoadTextureFromFile(const FbxString & pFilePath, unsigned int & pTextureObject);
-	std::vector<std::string, fbxsdk::FbxAMatrix> get_animation_list();
-	void FbxParser::parse_animation_files(std::string filepath, FbxScene* pScene);
- 
-#endif 
+	void LoadCacheRecursive(FbxNode* pNode, FbxAnimLayer* pAnimLayer, bool pSupportVBO);
+	bool LoadTextureFromFile(const FbxString& pFilePath, unsigned int& pTextureObject);
+
+};
+#endif
