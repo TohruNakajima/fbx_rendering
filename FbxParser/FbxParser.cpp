@@ -555,6 +555,7 @@ FbxAMatrix FbxParser::GetGlobalPositionFromPredefinedAnimationData(FbxNode* node
 	}
 	else {
 		// Handle the case where the node is not found in the map (optional)
+		std::cout << "Warning: Key " << nodeName << " not found." << std::endl;
 		return FbxAMatrix();  // Return a default transformation (identity matrix)
 	}
 }
@@ -575,49 +576,37 @@ void FbxParser::parse_animation_files(std::string filepath, FbxScene* pScene) {
 	ifs >> count_of_poses;
 	ifs.ignore(std::numeric_limits<std::streamsize>::max(), '\r');
 
+	std::unordered_map<int, std::string> name_mapping;
+
 	for (int i = 0; i < count_of_poses; ++i) {
 		std::string name;
 		ifs >> name;  // Read the name
 		std::replace(name.begin(), name.end(), '$', ' ');
 		this->animation_list[name] = std::vector<fbxsdk::FbxAMatrix>();
+		name_mapping[i] = name;
 	}
 
-	FbxString  lName;
-	int lPoseCount = pScene->GetPoseCount();
+	ifs.ignore(std::numeric_limits<std::streamsize>::max(), '\r');
 
-	for (int i = 0; i < lPoseCount; i++)
-	{
-		FbxPose* lPose = pScene->GetPose(i);
-
-		const char* lName = lPose->GetName();
-		
-		
-		
-		for (int j = 0; j < lPose->GetCount(); j++)
-		{
+	while (!ifs.eof()) {
+		for (int i = 0; i < count_of_poses; i++) {
 			fbxsdk::FbxAMatrix pose_matrix;
-			lName = lPose->GetNodeName(j).GetCurrentName();
-			
-			if (!lPose->IsBindPose())
-			{
-				// Rest pose can have local matrix
-				DisplayBool("    Is local space matrix: ", lPose->IsLocalMatrix(j));
-			}
-
 			for (int mj = 0; mj < 4; mj++) {
 				for (int mk = 0; mk < 4; mk++) {
-					double val = 0;
+					double val;
+					if (ifs.eof()) {
+						std::cout << mj << ", " << mk << std::endl;
+						abort();
+					}
 					ifs >> val;
 					pose_matrix[mj][mk] = val;
 				}
 			}
-			this->animation_list[std::string(lName)].push_back(pose_matrix);
-
-
-			
+			this->animation_list[name_mapping[i]].push_back(pose_matrix);
 		}
-	}
+		ifs.ignore(std::numeric_limits<std::streamsize>::max(), '\r');
 
+	}
 
 
 
